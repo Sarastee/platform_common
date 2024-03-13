@@ -4,7 +4,7 @@ package mocks
 
 import (
 	context "context"
-	db "platform_common/pkg/db"
+	db "github.com/sarastee/platform_common/pkg/db"
 
 	mock "github.com/stretchr/testify/mock"
 
