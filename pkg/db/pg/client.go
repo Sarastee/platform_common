@@ -5,15 +5,17 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rs/zerolog"
 	"github.com/sarastee/platform_common/pkg/db"
 )
 
 type pgClient struct {
 	masterDBC db.DB
+	logger    *zerolog.Logger
 }
 
 // New - new Client for Postgres database
-func New(ctx context.Context, dsn string) (db.Client, error) {
+func New(ctx context.Context, dsn string, logger *zerolog.Logger) (db.Client, error) {
 	pgxConfig, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
 		return nil, fmt.Errorf("error while creating config for pgxpool: %v", err)
@@ -21,11 +23,12 @@ func New(ctx context.Context, dsn string) (db.Client, error) {
 
 	pool, err := pgxpool.NewWithConfig(ctx, pgxConfig)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка при подключении к БД: %v", err)
+		return nil, fmt.Errorf("error while connecting to DB: %v", err)
 	}
 
 	return &pgClient{
-		masterDBC: NewDB(pool),
+		masterDBC: NewDB(pool, logger),
+		logger:    logger,
 	}, nil
 }
 

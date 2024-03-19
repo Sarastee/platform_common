@@ -65,7 +65,7 @@ func (m *manager) transaction(ctx context.Context, opts pgx.TxOptions, fn db.Han
 	// If the function fails, return an error and the defer function rolls back
 	// or otherwise the transaction is committed
 	if err = fn(ctx); err != nil {
-		err = fmt.Errorf("проблема при запуске кода внутри транзакции: %w", err)
+		err = fmt.Errorf("error while running code inside a transaction: %w", err)
 	}
 
 	return err

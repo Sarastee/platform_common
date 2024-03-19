@@ -2,12 +2,11 @@ package pg
 
 import (
 	"context"
-	"fmt"
-	"log"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rs/zerolog"
 	"github.com/sarastee/platform_common/pkg/db"
 	"github.com/sarastee/platform_common/pkg/db/prettier"
 )
@@ -19,19 +18,21 @@ const (
 )
 
 type pg struct {
-	pool *pgxpool.Pool
+	pool   *pgxpool.Pool
+	logger *zerolog.Logger
 }
 
 // NewDB ...
-func NewDB(dbc *pgxpool.Pool) db.DB {
+func NewDB(dbc *pgxpool.Pool, logger *zerolog.Logger) db.DB {
 	return &pg{
-		pool: dbc,
+		pool:   dbc,
+		logger: logger,
 	}
 }
 
 // ExecContext ..
 func (p *pg) ExecContext(ctx context.Context, q db.Query, args ...interface{}) (pgconn.CommandTag, error) {
-	logQuery(ctx, q, args...)
+	logQuery(ctx, p.logger, q)
 
 	tx, ok := ContextTx(ctx)
 	if ok {
@@ -43,7 +44,7 @@ func (p *pg) ExecContext(ctx context.Context, q db.Query, args ...interface{}) (
 
 // QueryContext ..
 func (p *pg) QueryContext(ctx context.Context, q db.Query, args ...interface{}) (pgx.Rows, error) {
-	logQuery(ctx, q, args...)
+	logQuery(ctx, p.logger, q)
 
 	tx, ok := ContextTx(ctx)
 	if ok {
@@ -55,7 +56,7 @@ func (p *pg) QueryContext(ctx context.Context, q db.Query, args ...interface{}) 
 
 // QueryRowContext ..
 func (p *pg) QueryRowContext(ctx context.Context, q db.Query, args ...interface{}) pgx.Row {
-	logQuery(ctx, q, args...)
+	logQuery(ctx, p.logger, q)
 
 	tx, ok := ContextTx(ctx)
 	if ok {
@@ -115,11 +116,9 @@ func ContextTx(ctx context.Context) (pgx.Tx, bool) {
 	return tx, true
 }
 
-func logQuery(ctx context.Context, q db.Query, args ...interface{}) {
-	prettyQuery := prettier.Pretty(q.QueryRaw, prettier.PlaceholderDollar, args...)
-	log.Println(
-		ctx,
-		fmt.Sprintf("sql: %s", q.Name),
-		fmt.Sprintf("query: %s", prettyQuery),
-	)
+func logQuery(_ context.Context, logger *zerolog.Logger, q db.Query) {
+	if logLevel := logger.GetLevel(); logLevel == zerolog.DebugLevel {
+		prettyQuery := prettier.Pretty(q.QueryRaw)
+		logger.Debug().Str("sql", q.Name).Str("query", prettyQuery).Msg("request log")
+	}
 }
